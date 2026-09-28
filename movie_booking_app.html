@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movie Booking App</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f3f3f3;
+        color: #222;
+    }
+
+    header {
+        background: #e50914;
+        color: white;
+        padding: 16px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .page {
+        max-width: 700px;
+        margin: 25px auto;
+        padding: 20px;
+    }
+
+    .card {
+        background: white;
+        padding: 22px;
+        border-radius: 12px;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.12);
+        margin-bottom: 20px;
+    }
+
+    h2 { margin-top: 0; }
+
+    label {
+        display: block;
+        margin: 12px 0 6px;
+        font-weight: bold;
+    }
+
+    select, input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 7px;
+        font-size: 16px;
+    }
+
+    .screen {
+        background: #222;
+        color: white;
+        padding: 8px;
+        margin: 20px auto;
+        max-width: 350px;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    .seats {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        max-width: 400px;
+        margin: auto;
+    }
+
+    .seat {
+        padding: 10px 5px;
+        background: #8ee28e;
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .seat.selected {
+        background: #ff9800;
+        color: white;
+    }
+
+    .seat.booked {
+        background: #777;
+        color: white;
+        cursor: not-allowed;
+    }
+
+    .summary {
+        background: #fafafa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+
+    button.action {
+        width: 100%;
+        padding: 13px;
+        margin-top: 18px;
+        background: #e50914;
+        color: white;
+        border: 0;
+        border-radius: 7px;
+        font-size: 17px;
+        cursor: pointer;
+    }
+
+    button.action:hover { background: #b80710; }
+
+    .hidden { display: none; }
+
+    .payment-option {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 7px;
+        margin: 8px 0;
+    }
+
+    .payment-option input { width: auto; }
+
+    .success {
+        text-align: center;
+        color: green;
+        font-weight: bold;
+        font-size: 20px;
+    }
+</style>
+</head>
+
+<body>
+
+<header>My Movie Booking</header>
+
+<div class="page">
+
+    <!-- BOOKING PAGE -->
+    <div class="card" id="bookingPage">
+        <h2>Book Your Movie</h2>
+
+        <label for="movie">Select Movie</label>
+        <select id="movie">
+            <option value="200">Avengers - ₹200</option>
+            <option value="180">Kalki - ₹180</option>
+            <option value="150">Leo - ₹150</option>
+            <option value="220">Pushpa 2 - ₹220</option>
+        </select>
+
+        <label for="customerName">Your Name</label>
+        <input id="customerName" type="text" placeholder="Enter your name">
+
+        <div class="screen">SCREEN</div>
+
+        <h3>Select Seats</h3>
+
+        <div class="seats" id="seatContainer"></div>
+
+        <div class="summary">
+            <p>Movie: <strong id="summaryMovie">Avengers</strong></p>
+            <p>Selected Seats: <strong id="summarySeats">None</strong></p>
+            <p>Total: ₹<strong id="summaryTotal">0</strong></p>
+        </div>
+
+        <button class="action" id="nextButton">Next - Payment</button>
+    </div>
+
+    <!-- PAYMENT PAGE -->
+    <div class="card hidden" id="paymentPage">
+        <h2>Payment Page</h2>
+
+        <div class="summary">
+            <p>Movie: <strong id="paymentMovie"></strong></p>
+            <p>Seats: <strong id="paymentSeats"></strong></p>
+            <p>Total Amount: ₹<strong id="paymentTotal"></strong></p>
+        </div>
+
+        <h3>Select Payment Method</h3>
+
+        <label class="payment-option">
+            <input type="radio" name="payment" value="UPI">
+            UPI
+        </label>
+
+        <label class="payment-option">
+            <input type="radio" name="payment" value="Card">
+            Debit / Credit Card
+        </label>
+
+        <label class="payment-option">
+            <input type="radio" name="payment" value="Net Banking">
+            Net Banking
+        </label>
+
+        <button class="action" id="payButton">Pay Now</button>
+        <button class="action" id="backButton" style="background:#555;">
+            Back to Seats
+        </button>
+    </div>
+
+    <!-- SUCCESS PAGE -->
+    <div class="card hidden" id="successPage">
+        <p class="success">Booking Successful!</p>
+        <p id="ticketDetails"></p>
+        <button class="action" id="closeButton">Close</button>
+    </div>
+
+</div>
+
+<script>
+    // Get HTML elements
+    const movie = document.getElementById("movie");
+    const customerName = document.getElementById("customerName");
+    const seatContainer = document.getElementById("seatContainer");
+
+    const summaryMovie = document.getElementById("summaryMovie");
+    const summarySeats = document.getElementById("summarySeats");
+    const summaryTotal = document.getElementById("summaryTotal");
+
+    const bookingPage = document.getElementById("bookingPage");
+    const paymentPage = document.getElementById("paymentPage");
+    const successPage = document.getElementById("successPage");
+
+    const paymentMovie = document.getElementById("paymentMovie");
+    const paymentSeats = document.getElementById("paymentSeats");
+    const paymentTotal = document.getElementById("paymentTotal");
+
+    const nextButton = document.getElementById("nextButton");
+    const payButton = document.getElementById("payButton");
+    const backButton = document.getElementById("backButton");
+    const closeButton = document.getElementById("closeButton");
+
+    // Create 20 seats
+    for (let i = 1; i <= 20; i++) {
+        const seat = document.createElement("button");
+
+        seat.className = "seat";
+        seat.textContent = "S" + i;
+        seat.dataset.seat = "S" + i;
+
+        seat.addEventListener("click", function () {
+            seat.classList.toggle("selected");
+            updateSummary();
+        });
+
+        seatContainer.appendChild(seat);
+    }
+
+    // Change movie
+    movie.addEventListener("change", function () {
+        updateSummary();
+    });
+
+    // Update selected seats and price
+    function updateSummary() {
+        const selectedSeats =
+            document.querySelectorAll(".seat.selected");
+
+        const price = Number(movie.value);
+
+        const seatNames = [];
+
+        selectedSeats.forEach(function (seat) {
+            seatNames.push(seat.dataset.seat);
+        });
+
+        const total = selectedSeats.length * price;
+
+        summaryMovie.textContent =
+            movie.options[movie.selectedIndex].text.split(" - ")[0];
+
+        summarySeats.textContent =
+            seatNames.length > 0 ? seatNames.join(", ") : "None";
+
+        summaryTotal.textContent = total;
+    }
+
+    // Open payment page
+    nextButton.addEventListener("click", function () {
+
+        if (customerName.value.trim() === "") {
+            alert("Please enter your name.");
+            return;
+        }
+
+        const selectedSeats =
+            document.querySelectorAll(".seat.selected");
+
+        if (selectedSeats.length === 0) {
+            alert("Please select at least one seat.");
+            return;
+        }
+
+        paymentMovie.textContent =
+            movie.options[movie.selectedIndex].text.split(" - ")[0];
+
+        paymentSeats.textContent =
+            Array.from(selectedSeats)
+            .map(seat => seat.dataset.seat)
+            .join(", ");
+
+        paymentTotal.textContent =
+            selectedSeats.length * Number(movie.value);
+
+        bookingPage.classList.add("hidden");
+        paymentPage.classList.remove("hidden");
+    });
+
+    // Back to booking page
+    backButton.addEventListener("click", function () {
+        paymentPage.classList.add("hidden");
+        bookingPage.classList.remove("hidden");
+    });
+
+    // Payment button
+    payButton.addEventListener("click", function () {
+
+        const paymentMethod =
+            document.querySelector('input[name="payment"]:checked');
+
+        if (!paymentMethod) {
+            alert("Please select a payment method.");
+            return;
+        }
+
+        const selectedSeats =
+            document.querySelectorAll(".seat.selected");
+
+        const selectedSeatNames =
+            Array.from(selectedSeats)
+            .map(seat => seat.dataset.seat)
+            .join(", ");
+
+        const selectedMovie =
+            movie.options[movie.selectedIndex].text.split(" - ")[0];
+
+        const total =
+            selectedSeats.length * Number(movie.value);
+
+        paymentPage.classList.add("hidden");
+        successPage.classList.remove("hidden");
+
+        document.getElementById("ticketDetails").innerHTML =
+            "Movie: " + selectedMovie +
+            "<br>Seats: " + selectedSeatNames +
+            "<br>Total Paid: ₹" + total +
+            "<br>Payment: " + paymentMethod.value;
+    });
+
+    // Close success window
+    closeButton.addEventListener("click", function () {
+        successPage.classList.add("hidden");
+        bookingPage.classList.remove("hidden");
+
+        document.querySelectorAll(".seat.selected")
+            .forEach(seat => seat.classList.remove("selected"));
+
+        customerName.value = "";
+        updateSummary();
+    });
+
+    // Initial summary
+    updateSummary();
+</script>
+
+</body>
+</html>
